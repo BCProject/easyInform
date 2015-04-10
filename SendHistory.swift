@@ -43,12 +43,31 @@ class SendHistory : RLMObject {
     }
     
     // レコード削除処理
-    class func deleteSendHistory(key: NSInteger) -> Bool? {
+    class func deleteSendHistory(key: NSInteger) -> Bool {
         var result: Bool = true
         RLMRealm.defaultRealm().beginWriteTransaction()
         SwiftTryCatch.try({
             let object = SendHistory(forPrimaryKey: key)
             RLMRealm.defaultRealm().deleteObject(object)
+            RLMRealm.defaultRealm().commitWriteTransaction()
+            }, catch: { (error) in
+                RLMRealm.defaultRealm().cancelWriteTransaction()
+                println("\(error.description)")
+                result = false
+            }, finally: {
+        })
+        return result
+    }
+    
+    // 全レコード削除処理
+    class func deleteAllSendHistory() -> Bool {
+        var result: Bool = true
+        RLMRealm.defaultRealm().beginWriteTransaction()
+        SwiftTryCatch.try({
+            let object = SendHistory.allObjects()
+            for delObj in object {
+                RLMRealm.defaultRealm().deleteObject(delObj)
+            }
             RLMRealm.defaultRealm().commitWriteTransaction()
             }, catch: { (error) in
                 RLMRealm.defaultRealm().cancelWriteTransaction()

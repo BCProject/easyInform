@@ -69,6 +69,7 @@ class InputOneDateTimeAlertController: UIAlertController {
         
         if let date = self._dateFormatter.dateFromString(text1) {
             self._datePicker.date = date
+            changeLabelDate(date)
         }
     }
     
@@ -78,7 +79,14 @@ class InputOneDateTimeAlertController: UIAlertController {
         changeLabelDate(NSDate())
     }
     
-    //
+    override func viewDidAppear(animated: Bool) {
+        if let date = self._dateFormatter.dateFromString(self._textField1.text) {
+            self._textField1.text = self.dateToString(date)
+        } else {
+            self._textField1.text = self.dateToString(self._datePicker.date)
+        }
+    }
+    
     func changedDateEvent(sender:AnyObject?){
         var dateSelecter: UIDatePicker = sender as UIDatePicker
         self.changeLabelDate(self._datePicker.date)

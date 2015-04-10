@@ -8,6 +8,7 @@
 
 import UIKit
 import Realm
+import iAd
 
 class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate {
 
@@ -21,6 +22,7 @@ class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate
     var _searchWord :String = ""
     var _section = [String]()
     var _sectionCount :NSInteger = 0
+    var _showBanner = false
     var _ap:AppDelegate = UIApplication.sharedApplication().delegate as AppDelegate
     
     override func viewDidLoad() {
@@ -35,7 +37,6 @@ class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate
         self.searchBar.delegate = self
         self.getTextFieldFromView(self.searchBar)?.enablesReturnKeyAutomatically = false
         self.getTextFieldFromView(self.searchBar)?.returnKeyType = UIReturnKeyType.Done
-        
     }
     
     override func didReceiveMemoryWarning() {
@@ -46,11 +47,20 @@ class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(true)
         self.tableView.tableFooterView = UIView(frame: CGRectMake(0, 0, 0, 0))
+        
+        // ****************************************//
+        // For Debug...
+        if (!self._ap.hideBanner) {
+            self.canDisplayBannerAds = true
+        } else {
+            self.canDisplayBannerAds = false
+        }
+        // ****************************************//
     }
     
-//    // セクションタイトル
-//    override func tableView(tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-//        
+    // セクションタイトル
+    override func tableView(tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+//
 //        // 日付ごとにセクションタイトルを設定
 //        if let object = self.getSendHistoryData(self._searchWord) {
 //            for result in object {
@@ -63,11 +73,12 @@ class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate
 //        } else {
 //            return ""
 //        }
-//    }
-//    
-//    // セクション数
-//    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
-//        
+        return "履歴一覧"
+    }
+//
+    // セクション数
+    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+//
 //        // 日付ごとにセクションを設置
 //        if let object = self.getSendHistoryData(self._searchWord) {
 //            for result in object {
@@ -80,7 +91,8 @@ class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate
 //        } else {
 //            return 1
 //        }
-//    }
+        return 1
+    }
     
     // セルの行数
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -110,7 +122,7 @@ class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate
     
     // セルの行幅
     override func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
-        return 180.0 // 固定値
+        return 110.0 // 固定値
     }
     
     // テーブルセル 内容
@@ -144,10 +156,6 @@ class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate
                 var mailTitle = cell.viewWithTag(5) as UILabel
                 mailTitle.text = "\(object.mail_title)"
                 
-                // 本文
-                var mailBody = cell.viewWithTag(6) as UILabel
-                mailBody.text = "\(object.mail_body)"
-                
                 // 送信日
                 var sendD = cell.viewWithTag(7) as UILabel
                 let df = NSDateFormatter()
@@ -170,6 +178,7 @@ class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate
             // AppDelegateにデータを渡す
             var appDelegate:AppDelegate = UIApplication.sharedApplication().delegate as AppDelegate
             appDelegate.sendHistoryNo = object.history_no
+            appDelegate.sendHistorySendD = object.send_d
             
             self.performSegueWithIdentifier("toSendHistoryData",sender: nil)
         }
@@ -188,24 +197,13 @@ class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate
             let okAction = UIAlertAction(title: "OK", style: .Default) {
                 action in
                 
-                // 取得件数が1件以上の場合は削除処理実行
-                var count :UInt = 1
-                if let object = self.getSendHistoryData(self._searchWord) {
-                    count = object.count
+                // 履歴削除
+                if let sendHistory = self.getSendHistoryData(self._searchWord) {
+                    SendHistory.deleteSendHistory(sendHistory[UInt(indexPath.row)].history_no)
                 }
-                if (count > 1) {
-                    
-                    // テンプレートHEAD 削除
-                    if let sendHistory = self.getSendHistoryData(self._searchWord) {
-                        SendHistory.deleteSendHistory(sendHistory[UInt(indexPath.row)].history_no)
-                    }
-                    
-                    // 戻るボタン非活性
-                    self.navigationItem.setHidesBackButton(true, animated: true)
-                    
-                    // テーブルデータ更新
-                    self.tableView.reloadData()
-                }
+                
+                // テーブルデータ更新
+                self.tableView.reloadData()
                 
                 return
             }
@@ -267,5 +265,9 @@ class SendHistoryTableViewController: UITableViewController, UISearchBarDelegate
         } else {
             return SendHistory.objectsWhere("template_name CONTAINS %@ OR mail_title CONTAINS %@ OR mail_body CONTAINS %@", str, str, str).sortedResultsUsingProperty("send_d", ascending: false)
         }
+    }
+    
+    @IBAction func returnSendHistory(){
+        self.tableView.reloadData()
     }
 }

@@ -41,9 +41,30 @@ class SendHistoryDataTableViewController: UITableViewController, UITextFieldDele
         
         // 描画エリアを計算
         calculateHeights()
+        
+        // タイトル表示
+        if let title = self._ap.sendHistorySendD {
+            var df = NSDateFormatter()
+            df.locale = NSLocale(localeIdentifier: "EN")
+            df.dateFormat = "yyyy/MM/dd HH:mm:ss"
+            self.title = df.stringFromDate(title)
+        }
 
         // 本文(TextView)リサイズ
         self.textView.resize((self._drawHeight! - TemplateCell.withoutBodyHeight), width: (self._drawWidth! - 10.0))
+    }
+    
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(true)
+        
+        // ****************************************//
+        // For Debug...
+        if (!self._ap.hideBanner) {
+            self.canDisplayBannerAds = true
+        } else {
+            self.canDisplayBannerAds = false
+        }
+        // ****************************************//
     }
     
     // 描画領域計算
@@ -66,6 +87,20 @@ class SendHistoryDataTableViewController: UITableViewController, UITextFieldDele
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
+    }
+    
+    // セクションタイトル
+    override func tableView(tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        if let object = SendHistory(forPrimaryKey: self._ap.sendHistoryNo) {
+            return object.template_name
+        } else {
+            return nil
+        }
+    }
+    
+    // セクション数
+    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+        return 1
     }
     
     

@@ -17,19 +17,17 @@ class InputOneTextAlertController: UIAlertController {
     
     var _text1: String = ""
     
+    var _notification = NSNotificationCenter.defaultCenter()
+    
     var _ap:AppDelegate = UIApplication.sharedApplication().delegate as AppDelegate
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // キャンセルボタン作成
-        let cancelAction: UIAlertAction = UIAlertAction(title: "キャンセル", style: .Cancel) { action -> Void in
-            return
-        }
-        
         // 入力フォーム1をアラートにセット
         self.addTextFieldWithConfigurationHandler { textField -> Void in
             self._textField1 = textField
+            textField.clearButtonMode = UITextFieldViewMode.WhileEditing
             textField.placeholder = self._placeholder1
             textField.text = self._text1
         }

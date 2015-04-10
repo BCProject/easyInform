@@ -13,7 +13,8 @@ class TemplateItem : RLMObject {
     dynamic var item_no: NSInteger = 0
     dynamic var item_title: String = ""
     dynamic var item_type: NSInteger = 0
-    dynamic var item_image: String = ""
+    dynamic var item_format: NSInteger = 0
+    dynamic var item_image: NSInteger = 0
     dynamic var item_content: String = ""
     dynamic var disp_no: NSInteger = 0
     
@@ -35,6 +36,7 @@ class TemplateItem : RLMObject {
                     result.item_no = object.item_no
                     result.item_title = object.item_title
                     result.item_type = object.item_type
+                    result.item_format = object.item_format
                     result.item_image = object.item_image
                     result.item_content = object.item_content
                     result.disp_no = object.disp_no
@@ -43,6 +45,23 @@ class TemplateItem : RLMObject {
             }
         }
         return result
+    }
+    
+    // アイテム名存在チェック
+    class func existTemplateItem(key: String, itemTitle: String) -> Bool {
+        if let head = TemplateHead.objectsWithPredicate(NSPredicate(format: "template_name = %@", key)).firstObject() as? TemplateHead {
+            if let items = self.objectsWithPredicate(NSPredicate(format: "template_head = %@", head)).sortedResultsUsingProperty("disp_no", ascending: true) {
+                if let object = items.objectsWhere("item_title = '\(itemTitle)'").firstObject() as? TemplateItem {
+                    return true
+                } else {
+                    return false
+                }
+            } else {
+                return false
+            }
+        } else {
+            return false
+        }
     }
     
     // レコード挿入処理
@@ -103,6 +122,9 @@ class TemplateItem : RLMObject {
             if (object.item_type != templateItem.item_type) {
                 templateItem.item_type = object.item_type
             }
+            if (object.item_format != templateItem.item_format) {
+                templateItem.item_format = object.item_format
+            }
             if (object.item_image != templateItem.item_image) {
                 templateItem.item_image = object.item_image
             }
@@ -138,11 +160,14 @@ class TemplateItem : RLMObject {
             if (!StringCommon.isBlank(object.item_title) && templateItem.item_title != object.item_title) {
                 templateItem.item_title = object.item_title
             }
-            if (!StringCommon.isBlank(object.item_image) && templateItem.item_image != object.item_image) {
+            if (object.item_image != 0 && templateItem.item_image != object.item_image) {
                 templateItem.item_image = object.item_image
             }
             if (object.item_type != 0 && templateItem.item_type != object.item_type) {
                 templateItem.item_type = object.item_type
+            }
+            if (object.item_format != 0 && templateItem.item_format != object.item_format) {
+                templateItem.item_format = object.item_format
             }
             if (!StringCommon.isBlank(object.item_content) && templateItem.item_content != object.item_content) {
                 templateItem.item_content = object.item_content
@@ -158,6 +183,40 @@ class TemplateItem : RLMObject {
                 }, finally: {
             })
         }
+        return result
+    }
+    
+    // レコード更新処理
+    class func updateTemplateItem(object: TemplateItem) -> Bool? {
+        var result: Bool = true
+        let out: TemplateItem = TemplateItem.objectsWhere("item_no = \(object.item_no)").firstObject() as TemplateItem
+        RLMRealm.defaultRealm().beginWriteTransaction()
+        var templateItem = TemplateItem(forPrimaryKey: out.item_no)
+        if (!StringCommon.isBlank(object.item_title) && templateItem.item_title != object.item_title) {
+            templateItem.item_title = object.item_title
+        }
+        if (object.item_image != 0 && templateItem.item_image != object.item_image) {
+            templateItem.item_image = object.item_image
+        }
+        if (object.item_type != 0 && templateItem.item_type != object.item_type) {
+            templateItem.item_type = object.item_type
+        }
+        if (object.item_format != 0 && templateItem.item_format != object.item_format) {
+            templateItem.item_format = object.item_format
+        }
+        if (!StringCommon.isBlank(object.item_content) && templateItem.item_content != object.item_content) {
+            templateItem.item_content = object.item_content
+        }
+        
+        SwiftTryCatch.try({
+            RLMRealm.defaultRealm().addOrUpdateObject(templateItem)
+            RLMRealm.defaultRealm().commitWriteTransaction()
+            }, catch: { (error) in
+                RLMRealm.defaultRealm().cancelWriteTransaction()
+                println("\(error.description)")
+                result = false
+            }, finally: {
+        })
         return result
     }
     

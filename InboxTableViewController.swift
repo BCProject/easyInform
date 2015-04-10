@@ -9,13 +9,15 @@
 import UIKit
 import Realm
 import MessageUI
+import iAd
 
 struct Cells {
     static let template: NSInteger = 0
     static let templateSection: NSInteger = 0
     static let itemSection: NSInteger = 1
-    static let templateHeadHeight: CGFloat = 180.0
-    static let templateItemHeight: CGFloat = 80.0
+    static let templateHeight: CGFloat = 190.0
+    static let templateHeadHeight: CGFloat = 80.0
+    static let templateItemHeight: CGFloat = 60.0
     static let section: NSArray = ["テンプレート","アイテム"]
 }
 
@@ -23,13 +25,17 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
     
     @IBOutlet weak var composeBt: UIBarButtonItem!
     
+    // NotificationToken定義
+    private var _notificationToken : RLMNotificationToken?
+    
     var _ap:AppDelegate = UIApplication.sharedApplication().delegate as AppDelegate
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // テーブルデータ再取得
-        self.tableView.reloadData()
+        
+        self._notificationToken = RLMRealm.defaultRealm().addNotificationBlock{ note, realm in
+            self.tableView.reloadData()
+        }
     }
     
     override func didReceiveMemoryWarning() {
@@ -40,7 +46,15 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(true)
         self.tableView.tableFooterView = UIView(frame: CGRectMake(0, 0, 0, 0))
-        self.tableView.reloadData()
+        
+        // ****************************************//
+        // For Debug...
+        if (!self._ap.hideBanner) {
+            self.canDisplayBannerAds = true
+        } else {
+            self.canDisplayBannerAds = false
+        }
+        // ****************************************//
     }
     
     // セクションタイトル
@@ -89,8 +103,12 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
     // セルの行幅
     override func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
         
-        return Cells.templateItemHeight
-        
+        // テンプレートHEAD(1個)
+        if (indexPath.section == 0) {
+            return Cells.templateHeadHeight
+        } else {
+            return Cells.templateItemHeight
+        }
     }
     
     // テーブルセル 内容
@@ -151,7 +169,7 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
                 
                 // アイコン
                 var icon = templateItemCell.viewWithTag(1) as UIImageView
-                icon.image = UIImage(named:"\(object.item_image)")
+                icon.image = UIImage(named:"\(ItemImage.IMAGE[object.item_image])")
                 
                 // タイトル
                 var title = templateItemCell.viewWithTag(2) as UILabel
@@ -168,12 +186,6 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
             return templateItemCell
         } else {
             var createItemCell = tableView.dequeueReusableCellWithIdentifier("createItemCell") as TemplateItemCell
-            
-            // アイコン
-            var icon = createItemCell.viewWithTag(1) as UIImageView
-            icon.image = UIImage(named:"add")?.imageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate)
-            icon.tintColor = UIColor.MainColor()
-            
             return createItemCell
         }
     }
@@ -201,7 +213,7 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
     // テンプレート 削除設定
     override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
         
-        // 編集モードにて削除が選択された場合
+        //編集モードにて削除が選択された場合
         if editingStyle == .Delete {
             
             // OKボタン作成
@@ -225,7 +237,7 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
                     ViewCommon.confirmDiarog(self, msg: "テンプレートアイテムが取得できませんでした。",okAction: nil)
                 }
                 return
-            }
+            } 
             ViewCommon.confirmDiarog(self, msg: "テンプレートアイテムを削除します。\nよろしいですか？", okAction: okAction, cancelAction: nil)
         }
     }
@@ -256,144 +268,15 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
             
         } else if (indexPath.row < index && indexPath.section == Cells.itemSection){
             
+            // 現在のセルに対するテンプレートITEMを取得
+            var object = TemplateItem()
             if let key = self._ap.template {
+                object = TemplateItem.selectTemplateItem(key, disp_no: (indexPath.row))
+                self._ap.editItemNo = object.item_no
+                self._ap.editItemTitle = object.item_title
                 
-                // 選択したセルに該当するテンプレートITEMのデータを取得
-                if let object = TemplateItem.selectTemplateItem(key, disp_no: (indexPath.row)) {
-                    
-                    // 取得したテンプレートITEMのアイテム種類で処理分岐
-                    switch (object.item_type) {
-                    case ItemType.DATE_YYYYMMDD_SLA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "yyyy/MM/dd"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_YYYYMMDD_JA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "JA")
-                        df.dateFormat = "yyyy年MM月dd日"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_YYYYMMDD_HI:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "yyyy-MM-dd"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_YYYYMM_SLA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "yyyy/MM"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_YYYYMM_JA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "JA")
-                        df.dateFormat = "yyyy年MM月"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_YYYYMM_HI:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "yyyy-MM"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_MMDD_SLA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "MM/dd"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_MMDD_JA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "JA")
-                        df.dateFormat = "MM月dd日"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_MMDD_HI:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "MM-dd"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_MD_SLA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "M/d"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_MD_JA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "JA")
-                        df.dateFormat = "M月d日"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATE_MD_HI:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "M-d"
-                        inputDateDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATETIME_MMDD_HHMM_COL:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "MM/dd HH:mm"
-                        inputDateTimeDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATETIME_MMDD_HHMM_JA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "JA")
-                        df.dateFormat = "MM月dd日 HH時mm分"
-                        inputDateTimeDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATETIME_MD_HMM_COL:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "M/d H:mm"
-                        inputDateTimeDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DATETIME_MD_HMM_JA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "JA")
-                        df.dateFormat = "M月d日 H時mm分"
-                        inputDateTimeDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.TIME_HHMM_COL:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "HH:mm"
-                        inputTimeDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.TIME_HHMM_JA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "JA")
-                        df.dateFormat = "HH時mm分"
-                        inputTimeDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.TIME_HMM_COL:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "EN")
-                        df.dateFormat = "H:mm"
-                        inputTimeDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.TIME_HMM_JA:
-                        let df = NSDateFormatter()
-                        df.locale     = NSLocale(localeIdentifier: "JA")
-                        df.dateFormat = "H時mm分"
-                        inputTimeDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row), df: df)
-                        break
-                    case ItemType.DAY:
-                        inputDayDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row))
-                        break
-                    case ItemType.TEXTFIELD:
-                        inputTextDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row))
-                        break
-                    default:
-                        inputTextDialog("\(object.item_title)", contents: "\(object.item_content)", index: (indexPath.row))
-                        break
-                    }
-                }
+                // テンプレートItem編集画面へ遷移
+                self.performSegueWithIdentifier("toTemplateItemEditView",sender: nil)
             }
         } else {
             createItemDialog()
@@ -489,8 +372,8 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
     func createItemDialog() {
         
         // アラートコントローラー作成
-        let alertController: InputTwoTextAlertController = InputTwoTextAlertController(title: "アイテム作成", message: "テンプレートアイテムを\n設定してください", preferredStyle: .Alert)
-        alertController.setTextFieldOption("アイテム名", placeholder2: "初期値", text1: "", text2: "")
+        let alertController: InputOneTextAlertController = InputOneTextAlertController(title: "新規作成", message: "アイテム名を設定してください", preferredStyle: .Alert)
+        alertController.setTextFieldOption("アイテム名", text1: "")
         
         // キャンセルボタン作成
         let cancelAction: UIAlertAction = UIAlertAction(title: "キャンセル", style: .Cancel) { action -> Void in
@@ -504,217 +387,51 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
             // テンプレートHEAD キー取得
             if let key = self._ap.template {
                 
-                // 作成用にテンプレートHEAD・ITEMオブジェクトを定義し値をセット
-                let templateItem: TemplateItem = TemplateItem()
+                if (!TemplateItem.existTemplateItem(key, itemTitle: alertController._textField1.text)) {
                 
-                templateItem.item_title = alertController._textField1.text
-                templateItem.item_content = alertController._textField2.text
-                templateItem.item_type = ItemType.TEXTFIELD
-                templateItem.item_image = "note"
-                if let disp_no = TemplateItem.getLastDispNo(key) {
-                    templateItem.disp_no = disp_no
+                    // 作成用にテンプレートHEAD・ITEMオブジェクトを定義し値をセット
+                    let templateItem: TemplateItem = TemplateItem()
+                    
+                    templateItem.item_title = alertController._textField1.text
+                    templateItem.item_type = ItemType.TEXT
+                    templateItem.item_format = ItemFormat.NONE
+                    templateItem.item_image = ItemImage.TEXT
+                    if let disp_no = TemplateItem.getLastDispNo(key) {
+                        templateItem.disp_no = disp_no
+                    }
+                    
+                    // テンプレートITEM 作成
+                    TemplateItem.insertTemplateItem(key, object: templateItem)
+                    
+                    // テーブルデータ更新
+                    self.tableView.reloadData()
+
+                } else {
+                    // 取得できた場合は確認ダイアログを表示する
+                    ViewCommon.confirmDiarog(self,msg: "「\(alertController._textField1.text)」は既に登録されております。",okAction: nil)
                 }
-                
-                // テンプレートITEM 作成
-                TemplateItem.insertTemplateItem(key, object: templateItem)
-                
-                // テーブルデータ更新
-                self.tableView.reloadData()
             }
         }
+        setAction.enabled = false
         alertController.addAction(setAction)
+        
+        alertController._notification.addObserver(self, selector: "changeItemName:", name: UITextFieldTextDidChangeNotification, object: nil)
         
         // アラート表示
         presentViewController(alertController, animated: true, completion: nil)
     }
     
-    // テンプレートITEM (Text)編集ダイアログ
-    func inputTextDialog(title:String, contents:String, index: NSInteger) {
+    // アイテム名変更イベント
+    func changeItemName(sender: NSNotification){
+        let textField = sender.object as UITextField
         
-        // アラートコントローラー作成
-        let alertController: InputOneTextAlertController = InputOneTextAlertController(title: title, message: "\(title)を設定してください", preferredStyle: .Alert)
-        alertController.setTextFieldOption("内容", text1: contents)
-        
-        // キャンセルボタン作成
-        let cancelAction: UIAlertAction = UIAlertAction(title: "キャンセル", style: .Cancel) { action -> Void in
-            return
-        }
-        alertController.addAction(cancelAction)
-        
-        // 設定ボタン作成
-        let setAction: UIAlertAction = UIAlertAction(title: "設定", style: .Default) { action -> Void in
-            
-            // テンプレートHEAD キー取得
-            if let key = self._ap.template {
-                
-                // 作成用にテンプレートITEMオブジェクトを定義し値をセット
-                let templateItem: TemplateItem = TemplateItem()
-                
-                // 入力フォームから値を取得
-                templateItem.item_content = alertController._textField1.text
-                
-                // テンプレートITEM 更新
-                TemplateItem.updateTemplateItem(templateItem, key: key, disp_no: index)
-                
-                // データ更新
-                self.tableView.reloadData()
+        if let alertController = self.presentedViewController as? UIAlertController {
+            var setAction = alertController.actions.last as UIAlertAction
+            if (countElements(textField.text) > 0 && countElements(textField.text) < 30) {
+                setAction.enabled = true
+            } else {
+                setAction.enabled = false
             }
         }
-        alertController.addAction(setAction)
-        
-        // アラート表示
-        presentViewController(alertController, animated: true, completion: nil)
-    }
-    
-    // テンプレートITEM (Date)編集ダイアログ
-    func inputDateDialog(title:String, contents:String, index: NSInteger, df: NSDateFormatter) {
-        
-        // アラートコントローラー作成
-        let alertController: InputOneDateAlertController = InputOneDateAlertController(title: title, message: "\(title)を設定してください", preferredStyle: .Alert)
-        alertController.setTextFieldOption("内容", text1: contents, df: df)
-        
-        // キャンセルボタン作成
-        let cancelAction: UIAlertAction = UIAlertAction(title: "キャンセル", style: .Cancel) { action -> Void in
-            return
-        }
-        alertController.addAction(cancelAction)
-        
-        // 設定ボタン作成
-        let setAction: UIAlertAction = UIAlertAction(title: "設定", style: .Default) { action -> Void in
-            
-            // テンプレートHEAD キー取得
-            if let key = self._ap.template {
-                
-                // 作成用にテンプレートITEMオブジェクトを定義し値をセット
-                let templateItem: TemplateItem = TemplateItem()
-                
-                // 入力フォームから値を取得
-                templateItem.item_content = alertController._textField1.text
-                
-                // テンプレートITEM 更新
-                TemplateItem.updateTemplateItem(templateItem, key: key, disp_no: index)
-                
-                // データ更新
-                self.tableView.reloadData()
-            }
-        }
-        alertController.addAction(setAction)
-        
-        // アラート表示
-        presentViewController(alertController, animated: true, completion: nil)
-    }
-    
-    // テンプレートITEM (DateTime)編集ダイアログ
-    func inputDateTimeDialog(title:String, contents:String, index: NSInteger, df: NSDateFormatter) {
-        
-        // アラートコントローラー作成
-        let alertController: InputOneDateTimeAlertController = InputOneDateTimeAlertController(title: title, message: "\(title)を設定してください", preferredStyle: .Alert)
-        alertController.setTextFieldOption("内容", text1: contents, df: df)
-        
-        // キャンセルボタン作成
-        let cancelAction: UIAlertAction = UIAlertAction(title: "キャンセル", style: .Cancel) { action -> Void in
-            return
-        }
-        alertController.addAction(cancelAction)
-        
-        // 設定ボタン作成
-        let setAction: UIAlertAction = UIAlertAction(title: "設定", style: .Default) { action -> Void in
-            
-            // テンプレートHEAD キー取得
-            if let key = self._ap.template {
-                
-                // 作成用にテンプレートITEMオブジェクトを定義し値をセット
-                let templateItem: TemplateItem = TemplateItem()
-                
-                // 入力フォームから値を取得
-                templateItem.item_content = alertController._textField1.text
-                
-                // テンプレートITEM 更新
-                TemplateItem.updateTemplateItem(templateItem, key: key, disp_no: index)
-                
-                // データ更新
-                self.tableView.reloadData()
-            }
-        }
-        alertController.addAction(setAction)
-        
-        // アラート表示
-        presentViewController(alertController, animated: true, completion: nil)
-    }
-    
-    // テンプレートITEM (Time)編集ダイアログ
-    func inputTimeDialog(title:String, contents:String, index: NSInteger, df: NSDateFormatter) {
-        
-        // アラートコントローラー作成
-        let alertController: InputOneTimeAlertController = InputOneTimeAlertController(title: title, message: "\(title)を設定してください", preferredStyle: .Alert)
-        alertController.setTextFieldOption("内容", text1: contents, df: df)
-        
-        // キャンセルボタン作成
-        let cancelAction: UIAlertAction = UIAlertAction(title: "キャンセル", style: .Cancel) { action -> Void in
-            return
-        }
-        alertController.addAction(cancelAction)
-        
-        // 設定ボタン作成
-        let setAction: UIAlertAction = UIAlertAction(title: "設定", style: .Default) { action -> Void in
-            
-            // テンプレートHEAD キー取得
-            if let key = self._ap.template {
-                
-                // 作成用にテンプレートITEMオブジェクトを定義し値をセット
-                let templateItem: TemplateItem = TemplateItem()
-                
-                // 入力フォームから値を取得
-                templateItem.item_content = alertController._textField1.text
-                
-                // テンプレートITEM 更新
-                TemplateItem.updateTemplateItem(templateItem, key: key, disp_no: index)
-                
-                // データ更新
-                self.tableView.reloadData()
-            }
-        }
-        alertController.addAction(setAction)
-        
-        // アラート表示
-        presentViewController(alertController, animated: true, completion: nil)
-    }
-    
-    // テンプレートITEM (Day)編集ダイアログ
-    func inputDayDialog(title:String, contents:String, index: NSInteger) {
-        
-        // アラートコントローラー作成
-        let alertController: InputOneDayAlertController = InputOneDayAlertController(title: title, message: "\(title)を設定してください", preferredStyle: .Alert)
-        alertController.setTextFieldOption("内容", text1: contents)
-        
-        // キャンセルボタン作成
-        let cancelAction: UIAlertAction = UIAlertAction(title: "キャンセル", style: .Cancel) { action -> Void in
-            return
-        }
-        alertController.addAction(cancelAction)
-        
-        // 設定ボタン作成
-        let setAction: UIAlertAction = UIAlertAction(title: "設定", style: .Default) { action -> Void in
-            
-            // テンプレートHEAD キー取得
-            if let key = self._ap.template {
-                
-                // 作成用にテンプレートITEMオブジェクトを定義し値をセット
-                let templateItem: TemplateItem = TemplateItem()
-                
-                // 入力フォームから値を取得
-                templateItem.item_content = alertController._textField1.text
-                
-                // テンプレートITEM 更新
-                TemplateItem.updateTemplateItem(templateItem, key: key, disp_no: index)
-                
-                // データ更新
-                self.tableView.reloadData()
-            }
-        }
-        alertController.addAction(setAction)
-        
-        // アラート表示
-        presentViewController(alertController, animated: true, completion: nil)
     }
 }

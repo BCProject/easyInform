@@ -20,15 +20,13 @@ class InputTwoTextAlertController: UIAlertController {
     var _text1: String = ""
     var _text2: String = ""
     
+    var _notification1 = NSNotificationCenter.defaultCenter()
+    var _notification2 = NSNotificationCenter.defaultCenter()
+    
     var _ap:AppDelegate = UIApplication.sharedApplication().delegate as AppDelegate
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // キャンセルボタン作成
-        let cancelAction: UIAlertAction = UIAlertAction(title: "キャンセル", style: .Cancel) { action -> Void in
-            return
-        }
 
         // 入力フォーム1をアラートにセット
         self.addTextFieldWithConfigurationHandler { textField -> Void in

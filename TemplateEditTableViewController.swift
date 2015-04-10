@@ -12,12 +12,13 @@ import AddressBook
 import AddressBookUI
 
 struct TemplateCell {
+    static let section: [String] = ["宛先","CC","BCC","件名","本文"]
     static let addressToHeight: CGFloat = 40.0
     static let addressCcHeight: CGFloat = 40.0
     static let addressBccHeight: CGFloat = 40.0
     static let subjectHeight: CGFloat = 40.0
-    static let withoutBodyHeight: CGFloat = 160.0
-    static let rowCount: NSInteger = 5
+    static let withoutBodyHeight: CGFloat = 200.0
+    static let rowCount: NSInteger = 6
 }
 
 class TemplateEditTableViewController: UITableViewController, UITextFieldDelegate, ABPeoplePickerNavigationControllerDelegate {
@@ -77,6 +78,8 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
         self.textView.resize((self._drawHeight! - TemplateCell.withoutBodyHeight), width: (self._drawWidth! - 10.0))
         
         self.textView.layoutManager.allowsNonContiguousLayout = false
+        
+        self.title = self._ap.editTemplateName
     }
     
     // 描画領域計算
@@ -101,12 +104,32 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
         // Dispose of any resources that can be recreated.
     }
     
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(true)
+        
+        // ****************************************//
+        // For Debug...
+        if (!self._ap.hideBanner) {
+            self.canDisplayBannerAds = true
+        } else {
+            self.canDisplayBannerAds = false
+        }
+        // ****************************************//
+    }
     
+    // セクションタイトル
+    override func tableView(tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return TemplateCell.section[section]
+    }
     
+    // セクション数
+    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+        return TemplateCell.section.count
+    }
     
     // テーブルセル行幅
     override func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
-        switch (indexPath.row) {
+        switch (indexPath.section) {
         case 0:
             return TemplateCell.addressToHeight
         case 1:
@@ -122,7 +145,7 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
     
     // テーブルセル行数
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return TemplateCell.rowCount
+        return 1
     }
     
     // テーブルセル 内容
@@ -131,7 +154,7 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
             
             // テンプレートHEAD情報取得
             if let object = TemplateHead.objectsWithPredicate(NSPredicate(format: "template_name = %@", key)).firstObject() as? TemplateHead {
-                switch (indexPath.row) {
+                switch (indexPath.section) {
                 case 0:
                     // セルを定義
                     var cell = tableView.dequeueReusableCellWithIdentifier("addressToCell") as TemplateEditTableViewCell
@@ -298,91 +321,60 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
         self.textView.resize((self._drawHeight! - TemplateCell.withoutBodyHeight), width: (self._drawWidth! - 10.0))
     }
     
-    // Saveボタン クリックイベント
-    @IBAction func onClickSaveButton(sender: AnyObject) {
+    override func viewWillDisappear(animated: Bool) {
+        
+        super.viewWillDisappear(true)
         
         // キーボードを閉じる
         self.view.endEditing(true)
         
-        let okAct = UIAlertAction(title: "OK", style: .Default) {
-            action in
-            // テンプレートHEAD Key取得
-            if let key = self._ap.editTemplateName {
-                
-                // テンプレートHEAD 更新用オブジェクト作成
-                let templateHead: TemplateHead = TemplateHead()
-                templateHead.template_name = key
-                
-                // アドレスTo取得
-                if let addressTo = self._addressTo.text {
-                    if (StringCommon.stringToArray(addressTo).count > 1) {
-                        templateHead.mail_address_to = StringCommon.arrayToString(StringCommon.stringToArray(addressTo))
-                    } else {
-                        templateHead.mail_address_to = addressTo
-                    }
+        // テンプレートHEAD Key取得
+        if let key = self._ap.editTemplateName {
+            
+            // テンプレートHEAD 更新用オブジェクト作成
+            let templateHead: TemplateHead = TemplateHead()
+            templateHead.template_name = key
+            
+            // アドレスTo取得
+            if let addressTo = self._addressTo.text {
+                if (StringCommon.stringToArray(addressTo).count > 1) {
+                    templateHead.mail_address_to = StringCommon.arrayToString(StringCommon.stringToArray(addressTo))
+                } else {
+                    templateHead.mail_address_to = addressTo
                 }
-                
-                // アドレスCc取得
-                if let addressCc = self._addressCc.text {
-                    if (StringCommon.stringToArray(addressCc).count > 1) {
-                        templateHead.mail_address_cc = StringCommon.arrayToString(StringCommon.stringToArray(addressCc))
-                    } else {
-                        templateHead.mail_address_cc = addressCc
-                    }
-                }
-                
-                // アドレスBcc取得
-                if let addressBcc = self._addressBcc.text {
-                    if (StringCommon.stringToArray(addressBcc).count > 1) {
-                        templateHead.mail_address_bcc = StringCommon.arrayToString(StringCommon.stringToArray(addressBcc))
-                    } else {
-                        templateHead.mail_address_bcc = addressBcc
-                    }
-                }
-                
-                // 件名取得
-                if let subject = self._subject.text {
-                    templateHead.mail_title = subject
-                }
-                
-                // 本文取得
-                if let body = self.textView.text {
-                    templateHead.mail_body = body
-                }
-                
-                // テンプレートHEAD 更新
-                TemplateHead.updateTemplateHead(templateHead)
-                
-                self.dismissViewControllerAnimated(true, completion: nil)
-                self._ap.editTemplateName = ""
             }
-            return
+            
+            // アドレスCc取得
+            if let addressCc = self._addressCc.text {
+                if (StringCommon.stringToArray(addressCc).count > 1) {
+                    templateHead.mail_address_cc = StringCommon.arrayToString(StringCommon.stringToArray(addressCc))
+                } else {
+                    templateHead.mail_address_cc = addressCc
+                }
+            }
+            
+            // アドレスBcc取得
+            if let addressBcc = self._addressBcc.text {
+                if (StringCommon.stringToArray(addressBcc).count > 1) {
+                    templateHead.mail_address_bcc = StringCommon.arrayToString(StringCommon.stringToArray(addressBcc))
+                } else {
+                    templateHead.mail_address_bcc = addressBcc
+                }
+            }
+            
+            // 件名取得
+            if let subject = self._subject.text {
+                templateHead.mail_title = subject
+            }
+            
+            // 本文取得
+            if let body = self.textView.text {
+                templateHead.mail_body = body
+            }
+            
+            // テンプレートHEAD 更新
+            TemplateHead.updateTemplateHead(templateHead)
         }
-        ViewCommon.confirmDiarog(self, msg: "保存します。\nよろしいですか？", okAction: okAct, cancelAction: nil)
-    }
-    
-    // Cancelボタン クリックイベント
-    @IBAction func onClickCancelButton(sender: AnyObject) {
-        
-        // キーボードを閉じる
-        self.view.endEditing(true)
-        
-        // 変更がなかった場合は確認なしで終了
-        if (!self._textChangeFlag) {
-            self.dismissViewControllerAnimated(true, completion: nil)
-            self._ap.editTemplateName = ""
-            self.view.endEditing(true)
-            return
-        }
-        
-        // OKボタン実装
-        let okAct = UIAlertAction(title: "OK", style: .Default) {
-            action in
-            self.dismissViewControllerAnimated(true, completion: nil)
-            self._ap.editTemplateName = ""
-            return
-        }
-        ViewCommon.confirmDiarog(self, msg: "変更内容が破棄されます。\nよろしいですか？", okAction: okAct, cancelAction: nil)
     }
     
     // TextField 編集直後

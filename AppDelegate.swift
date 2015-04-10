@@ -22,7 +22,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var availableViewHeight :CGFloat?
     var availableViewWidth :CGFloat?
     var editTemplateName: String?
+    var editItemNo: NSInteger?
+    var editItemTitle: String?
     var sendHistoryNo: NSInteger?
+    var sendHistorySendD: NSDate?
+    var hideBanner: Bool = false
 
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         // Override point for customization after application launch.
@@ -31,19 +35,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let filePath: NSArray = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory,NSSearchPathDomainMask.UserDomainMask,true)
         let realmFile: NSString = (filePath.lastObject as NSString) + "/easyInform.realm"
         RLMRealm.setDefaultRealmPath(realmFile)
-        
-        //NSFileManager.defaultManager().removeItemAtPath(RLMRealm.defaultRealmPath(), error: nil)
 
         // データ初期化
         if (TemplateHead.allObjects().count == 0){
             CreateData.init()
         }
-        
-        // デフォルトテンプレート設定
-        //let templateHead = TemplateHead.allObjects().sortedResultsUsingProperty("disp_no", ascending: true)
-//        if let object = templateHead[UInt(0)] as? TemplateHead {
-//            self.template = object.template_name
-//        }
 
         // ナビゲーションアイコン 背景色変更
         UINavigationBar.appearance().tintColor = UIColor.MainColor()

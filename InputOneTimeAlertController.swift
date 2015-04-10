@@ -68,6 +68,15 @@ class InputOneTimeAlertController: UIAlertController {
         self._dateFormatter = df
         if let date = self._dateFormatter.dateFromString(text1) {
             self._datePicker.date = date
+            changeLabelDate(date)
+        }
+    }
+    
+    override func viewDidAppear(animated: Bool) {
+        if let date = self._dateFormatter.dateFromString(self._textField1.text) {
+            self._textField1.text = self.dateToString(date)
+        } else {
+            self._textField1.text = self.dateToString(self._datePicker.date)
         }
     }
     
@@ -93,4 +102,5 @@ class InputOneTimeAlertController: UIAlertController {
         
         return self._dateFormatter.stringFromDate(date)
     }
+
 }

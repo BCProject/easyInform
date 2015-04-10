@@ -8,15 +8,19 @@
 
 import UIKit
 import Realm
+import iAd
 
-class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
-
-    @IBOutlet weak var searchBar: UISearchBar!
+class TemplateTableViewController: UITableViewController,  ADBannerViewDelegate {
+    
+    @IBOutlet weak var historyBt: UIBarButtonItem!
     
     // NotificationToken定義
     private var _notificationToken : RLMNotificationToken?
     
-    var _searchWord :String = ""
+    // 広告バナー定義
+    let _iadBanner = ADBannerView(adType: ADAdType.Banner)
+    
+    // Appデリゲート
     var _ap:AppDelegate = UIApplication.sharedApplication().delegate as AppDelegate
     
     override func viewDidLoad() {
@@ -27,17 +31,11 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
             self.tableView.reloadData()
         }
         
-//        // 長押し用ジェスチャー
-//        let longPressRecognizer: UILongPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: "rowButtonAction:")
-//        longPressRecognizer.allowableMovement = 15
-//        longPressRecognizer.minimumPressDuration = 0.4
-//        self.tableView.addGestureRecognizer(longPressRecognizer)
-        
-        // 検索バーDelegate
-        self.searchBar.delegate = self
-        self.getTextFieldFromView(self.searchBar)?.enablesReturnKeyAutomatically = false
-        self.getTextFieldFromView(self.searchBar)?.returnKeyType = UIReturnKeyType.Done
-        
+        // 長押し用ジェスチャー
+        let longPressRecognizer: UILongPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: "rowButtonAction:")
+        longPressRecognizer.allowableMovement = 15
+        longPressRecognizer.minimumPressDuration = 0.4
+        self.tableView.addGestureRecognizer(longPressRecognizer)
     }
     
     override func didReceiveMemoryWarning() {
@@ -48,11 +46,38 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(true)
         self.tableView.tableFooterView = UIView(frame: CGRectMake(0, 0, 0, 0))
+        
+        if let object = SendHistory.allObjects() {
+            if (object.count > 0) {
+                historyBt.enabled = true
+            } else {
+                historyBt.enabled = false
+            }
+        }
+        
+        // ****************************************//
+        // For Debug...
+        if (!self._ap.hideBanner) {
+            self.canDisplayBannerAds = true
+        } else {
+            self.canDisplayBannerAds = false
+        }
+        // ****************************************//
+    }
+    
+    // セクションタイトル
+    override func tableView(tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return "テンプレート一覧"
+    }
+    
+    // セクション数
+    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+        return 1
     }
     
     // セルの行数
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if let object = getTemplateHeadData(self._searchWord) {
+        if let object = getTemplateHeadData() {
             return Int(object.count) + 1
         } else {
             return 1
@@ -62,11 +87,11 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
     // セルの行幅
     override func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
         var index: Int = 0
-        if let object = getTemplateHeadData(self._searchWord) {
+        if let object = getTemplateHeadData() {
             index = Int(object.count)
         }
         if (indexPath.row < index) {
-            return Cells.templateHeadHeight
+            return Cells.templateHeight
         } else {
             return Cells.templateItemHeight
         }
@@ -76,13 +101,13 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         
         var index: Int = 0
-        if let object = getTemplateHeadData(self._searchWord) {
+        if let object = getTemplateHeadData() {
             index = Int(object.count)
         }
         
         // データ取り出し
         if (indexPath.row < index) {
-            if let templateHead = getTemplateHeadData(self._searchWord) {
+            if let templateHead = getTemplateHeadData() {
                 if let object = templateHead[UInt(indexPath.row)] as? TemplateHead {
                     
                     // セルを定義
@@ -118,12 +143,6 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
             }
         } else {
             var createItemCell = tableView.dequeueReusableCellWithIdentifier("createItemCell") as TemplateItemCell
-            
-            // アイコン
-            var icon = createItemCell.viewWithTag(1) as UIImageView
-            icon.image = UIImage(named:"add")?.imageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate)
-            icon.tintColor = UIColor.MainColor()
-            
             return createItemCell
         }
         return TemplateItemCell()
@@ -133,7 +152,7 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
     override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
         
         var index: Int = 0
-        if let object = getTemplateHeadData(self._searchWord) {
+        if let object = getTemplateHeadData() {
             index = Int(object.count)
         }
         
@@ -141,7 +160,7 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
         if (indexPath.row < index) {
         
             // テンプレートHEAD データ取得
-            if let templateHead = self.getTemplateHeadData(self._searchWord) {
+            if let templateHead = self.getTemplateHeadData() {
                 let object = templateHead[UInt(indexPath.row)] as TemplateHead
                 
                 // AppDelegateにデータを渡す
@@ -171,7 +190,7 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
                 action in
                 
                 // テンプレートHEAD 削除
-                if let templateHead = self.getTemplateHeadData(self._searchWord) {
+                if let templateHead = self.getTemplateHeadData() {
                     TemplateHead.deleteTemplateHead(templateHead[UInt(indexPath.row)].template_name)
                 }
                 
@@ -194,7 +213,7 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
     // テーブル 編集可否
     override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
         var index: Int = 0
-        if let object = getTemplateHeadData(self._searchWord) {
+        if let object = getTemplateHeadData() {
             index = Int(object.count)
         }
         if (indexPath.row < index) {
@@ -203,37 +222,12 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
         return false
     }
     
-    // 長押し判別用
-//    @IBAction func rowButtonAction(gestureRecognizer: UILongPressGestureRecognizer){
-//        
-//        // 座標オブジェクト(タップした座標を格納)
-//        let p: CGPoint = gestureRecognizer.locationInView(tableView)
-//        
-//        // タップした位置のセルIndexを取得する
-//        if let indexPath = tableView.indexPathForRowAtPoint(p) {
-//            if (gestureRecognizer.state == UIGestureRecognizerState.Began) {
-//                
-//                // タップしたセルのテンプレートHEADデータを取得
-//                if let templateHead = self.getTemplateHeadData(self._searchWord) {
-//                    let object = templateHead[UInt(indexPath.row)] as TemplateHead
-//                    // AppDelegateにデータを渡す
-//                    self._ap.editTemplateName = object.template_name
-//                }
-//                
-//                // テンプレート編集画面へ遷移
-//                self.performSegueWithIdentifier("toTemplateEditView",sender: nil)
-//            }
-//        }
-//    }
-    
     // 新規作成ダイアログ
     func addDialog() {
         
-        // テンプレート名入力フォーム
-        var inputTemplateField: UITextField?
-        
         // アラートコントローラ作成
-        let alertController: UIAlertController = UIAlertController(title: "新規作成", message: "テンプレート名を設定してください", preferredStyle: .Alert)
+        let alertController: InputOneTextAlertController = InputOneTextAlertController(title: "新規作成", message: "テンプレート名を設定してください", preferredStyle: .Alert)
+        alertController.setTextFieldOption("テンプレート名", text1: "")
         
         // キャンセルボタン作成
         let cancelAction: UIAlertAction = UIAlertAction(title: "キャンセル", style: .Cancel) { action -> Void in
@@ -245,7 +239,7 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
         let setAction: UIAlertAction = UIAlertAction(title: "作成", style: .Default) { action -> Void in
             
             // 入力フォームの内容でテンプレートHEADデータを取得
-            if let text = inputTemplateField?.text {
+            if let text = alertController._textField1.text {
                 var object = TemplateHead.objectsWithPredicate(NSPredicate(format: "template_name = %@", text))
                 
                 // 取得できない場合は新規作成
@@ -269,51 +263,32 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
             }
             return
         }
+        setAction.enabled = false
         alertController.addAction(setAction)
         
-        // テンプレート名入力フォームをアラートコントローラに追加
-        alertController.addTextFieldWithConfigurationHandler { textField -> Void in
-            inputTemplateField = textField
-            textField.placeholder = "テンプレート名"
-        }
+        alertController._notification.addObserver(self, selector: "changeTemplateName:", name: UITextFieldTextDidChangeNotification, object: nil)
         
         // アラート表示
         presentViewController(alertController, animated: true, completion: nil)
     }
     
-    // 検索ボタンクリックイベント
-    func searchBarSearchButtonClicked(searchBar: UISearchBar) {
-        self.view.endEditing(true)
-        self.tableView.reloadData()
-    }
-    
-    // 検索バー値変更イベント
-    func searchBar(searchBar: UISearchBar, textDidChange searchText: String) {
-        self._searchWord = searchText
-        self.tableView.reloadData()
-    }
-    
-    // 検索バーからテキストフィールドオブジェクトを検索
-    func getTextFieldFromView(view: UIView) -> UITextField? {
-        for subView in view.subviews {
-            if (subView.isKindOfClass(UITextField)) {
-                return subView as? UITextField
+    // テンプレート名変更イベント
+    func changeTemplateName(sender: NSNotification){
+        let textField = sender.object as UITextField
+        
+        if let alertController = self.presentedViewController as? UIAlertController {
+            var setAction = alertController.actions.last as UIAlertAction
+            if (countElements(textField.text) > 0 && countElements(textField.text) < 30) {
+                setAction.enabled = true
             } else {
-                if let textField: UITextField = self.getTextFieldFromView(subView as UIView) {
-                    return textField
-                }
+                setAction.enabled = false
             }
         }
-        return nil
     }
     
     // テンプレートHEAD情報取得
-    func getTemplateHeadData(str: String) -> RLMResults? {
-        if (StringCommon.isBlank(str)) {
-            return TemplateHead.allObjects().sortedResultsUsingProperty("disp_no", ascending: true)
-        } else {
-            return TemplateHead.objectsWhere("template_name CONTAINS %@ OR mail_title CONTAINS %@ OR mail_body CONTAINS %@", str, str, str).sortedResultsUsingProperty("disp_no", ascending: true)
-        }
+    func getTemplateHeadData() -> RLMResults? {
+        return TemplateHead.allObjects().sortedResultsUsingProperty("disp_no", ascending: true)
     }
     
     
@@ -322,5 +297,41 @@ class TemplateTableViewController: UITableViewController, UISearchBarDelegate {
         self.tableView.reloadData()
     }
     
+    // 長押し判別用
+    @IBAction func rowButtonAction(gestureRecognizer: UILongPressGestureRecognizer){
+
+        // 座標オブジェクト(タップした座標を格納)
+        let p: CGPoint = gestureRecognizer.locationInView(tableView)
+
+        // タップした位置のセルIndexを取得する
+        if let indexPath = tableView.indexPathForRowAtPoint(p) {
+            if (gestureRecognizer.state == UIGestureRecognizerState.Began) {
+
+                // タップしたセルのテンプレートHEADデータを取得
+                if let templateHead = self.getTemplateHeadData() {
+                    let object = templateHead[UInt(indexPath.row)] as TemplateHead
+                    // AppDelegateにデータを渡す
+                    self._ap.editTemplateName = object.template_name
+                }
+
+                // テンプレート編集画面へ遷移
+                self.performSegueWithIdentifier("toTemplateEditView",sender: nil)
+            }
+        }
+    }
+    
+    // 履歴ボタン押下イベント
+    @IBAction func onClickHistory() {
+        
+        // 履歴一覧画面へ遷移
+        self.performSegueWithIdentifier("toSendHistoryView",sender: nil)
+    }
+    
+    // 設定ボタン押下イベント
+    @IBAction func onClickSetting() {
+        
+        // 設定画面へ遷移
+        self.performSegueWithIdentifier("toSettingView",sender: nil)
+    }
     
 }

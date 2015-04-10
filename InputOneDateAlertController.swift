@@ -69,16 +69,18 @@ class InputOneDateAlertController: UIAlertController {
             let dfYYYY = NSDateFormatter()
             dfYYYY.locale = NSLocale(localeIdentifier: "EN")
             dfYYYY.dateFormat = "yyyy"
-            if (dfYYYY.stringFromDate(date) == "2000") {
+            if (dfYYYY.stringFromDate(date).toInt() <= 2000) {
                 let now: String = dfYYYY.stringFromDate(NSDate())
                 let dfYYYYMMDD = NSDateFormatter()
                 dfYYYYMMDD.locale = NSLocale(localeIdentifier: "EN")
                 dfYYYYMMDD.dateFormat = "yyyy/MM/dd"
                 if let dt = dfYYYYMMDD.dateFromString("\(now)/\(text1)") {
                     self._datePicker.date = dt
+                    changeLabelDate(dt)
                 }
             } else {
                 self._datePicker.date = date
+                changeLabelDate(date)
             }
         }
     }
@@ -89,7 +91,31 @@ class InputOneDateAlertController: UIAlertController {
         changeLabelDate(NSDate())
     }
     
-    //
+    override func viewDidAppear(animated: Bool) {
+        if let date = self._dateFormatter.dateFromString(self._textField1.text) {
+            let dfYYYY = NSDateFormatter()
+            dfYYYY.locale = NSLocale(localeIdentifier: "EN")
+            dfYYYY.dateFormat = "yyyy"
+            if (dfYYYY.stringFromDate(date).toInt() <= 2000) {
+                let now: String = dfYYYY.stringFromDate(NSDate())
+                let dfYYYYMMDD = NSDateFormatter()
+                dfYYYYMMDD.locale = NSLocale(localeIdentifier: "EN")
+                dfYYYYMMDD.dateFormat = "yyyy/MM/dd"
+                if let dt = dfYYYYMMDD.dateFromString("\(now)/\(self._textField1.text)") {
+                    self._datePicker.date = dt
+                    changeLabelDate(dt)
+                    self._textField1.text = self.dateToString(dt)
+                }
+            } else {
+                self._datePicker.date = date
+                changeLabelDate(date)
+                self._textField1.text = self.dateToString(date)
+            }
+        } else {
+            self._textField1.text = self.dateToString(self._datePicker.date)
+        }
+    }
+    
     func changedDateEvent(sender:AnyObject?){
         var dateSelecter: UIDatePicker = sender as UIDatePicker
         self.changeLabelDate(self._datePicker.date)
