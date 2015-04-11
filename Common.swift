@@ -72,6 +72,20 @@ struct StringCommon {
         return result
     }
     
+    // セミコロン改行変換
+    static func lineFromSemicolon(str: String) -> String {
+        var result: String = ""
+        var bufArr = StringCommon.stringToArray(str)
+        for bufStr in bufArr {
+            if (!StringCommon.isBlank(result)) {
+                result = "\(result)\n\(bufStr);"
+            } else {
+                result = "\(bufStr);"
+            }
+        }
+        return result
+    }
+    
     // 文字列配列を文字列に変換
     static func arrayToString(array: [String]) -> String {
         var result: String = ""
@@ -82,6 +96,99 @@ struct StringCommon {
                 } else {
                     result = "\(arr)"
                 }
+            }
+        }
+        return result
+    }
+    
+    // 名前とアドレスを分割
+    static func separateAddressString(str: String, rev:Bool) -> [String] {
+        var result: [String] = []
+        if (!self.isBlank(str)) {
+            var array = str.componentsSeparatedByString("\"<")
+            for buf in array {
+                var appendStr = buf
+                appendStr = appendStr.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
+                appendStr = appendStr.stringByReplacingOccurrencesOfString(">", withString: "", options: nil, range: nil)
+                appendStr = appendStr.stringByReplacingOccurrencesOfString("\"", withString: "", options: nil, range: nil)
+                if (!StringCommon.isBlank(appendStr)) {
+                    result.append(appendStr)
+                }
+            }
+        }
+        if rev {
+            return result.reverse()
+        } else {
+            return result
+        }
+    }
+    
+    // 辞書から名前作成
+    static func stringFromDictionary(dic: Dictionary<String, String>, list: [String]) -> String {
+        var result: String = ""
+        if (dic.count > 0 && list.count > 0) {
+            for str in list {
+                var appendStr = StringCommon.separateAddressString(str, rev: true)[0]
+                if let val = dic[appendStr] {
+                    if (!StringCommon.isBlank(result)) {
+                        result = "\(result)\(val);"
+                    } else {
+                        result = "\(val);"
+                    }
+                } else {
+                    if (!StringCommon.isBlank(result)) {
+                        result = "\(result)\(str);"
+                    } else {
+                        result = "\(str);"
+                    }
+                }
+            }
+        }
+        return result
+    }
+    
+    // 辞書から保存用文字列作成
+    static func dictionaryToString(dic: Dictionary<String, String>, list: [String]) -> String {
+        var result: String = ""
+        for buf in list {
+            if (!StringCommon.isBlank(result)){
+                if let val = dic[buf] {
+                    result = "\(result)\"\(buf)\"<\(val)>;"
+                } else {
+                    result = "\(result)\(buf);"
+                }
+            } else {
+                if let val = dic[buf] {
+                    result = "\"\(buf)\"<\(val)>;"
+                } else {
+                    result = "\(buf);"
+                }
+            }
+        }
+        return result
+    }
+    
+    // 辞書作成
+    static func makeDictionary(str: String, rev: Bool) -> Dictionary<String, String> {
+        var result = Dictionary<String, String>()
+        var bufArr = StringCommon.stringToArray(str)
+        for bufStr in bufArr {
+            var appendStr = bufStr.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
+            var appendDic = StringCommon.separateAddressString(appendStr, rev: rev)
+            if let val = result[appendDic[0]] {
+                if !isBlank(val) {
+                    continue
+                }
+            }
+            switch appendDic.count {
+            case 1:
+                result[appendDic[0]] = appendDic[0]
+                break
+            case 2:
+                result[appendDic[0]] = appendDic[1]
+                break
+            default:
+                break
             }
         }
         return result

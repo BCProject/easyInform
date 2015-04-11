@@ -17,14 +17,16 @@ struct TemplateCell {
     static let addressCcHeight: CGFloat = 40.0
     static let addressBccHeight: CGFloat = 40.0
     static let subjectHeight: CGFloat = 40.0
+    static let bodyHeight: CGFloat = 40.0
     static let withoutBodyHeight: CGFloat = 200.0
-    static let rowCount: NSInteger = 6
+    static let rowCount: NSInteger = 5
 }
 
 class TemplateEditTableViewController: UITableViewController, UITextFieldDelegate, ABPeoplePickerNavigationControllerDelegate {
     
     @IBOutlet weak var textView: MailBodyTextView!
-    
+    @IBOutlet weak var previewBt: UIBarButtonItem!
+
     // 画面描画 計算用変数
     var _drawHeight: CGFloat?
     var _drawWidth:CGFloat?
@@ -42,6 +44,11 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
     var _subjectDidLoad = false
     var _textDidLoad = false
     var _textChangeFlag = false
+    
+    // 宛先表示用
+    var _addressDictionary = Dictionary<String, String>()
+    var _nameDictionary = Dictionary<String, String>()
+    var _loadDictionaryFromData = false
     
     // Appデリゲートオブジェクト
     let _ap:AppDelegate = UIApplication.sharedApplication().delegate as AppDelegate
@@ -71,7 +78,7 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
         let window = ItemSelectWindow()
         let keyBoard = KeyBoardViewOnTextView(frame: CGRectMake(0, 0, 320, 40))
         keyBoard._textView = self.textView
-        keyBoard.drawKeyBoardView(self, window: window)
+        keyBoard.drawKeyBoardView(self)
         self.textView.inputAccessoryView = keyBoard
 
         // 本文(TextView)リサイズ
@@ -154,6 +161,12 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
             
             // テンプレートHEAD情報取得
             if let object = TemplateHead.objectsWithPredicate(NSPredicate(format: "template_name = %@", key)).firstObject() as? TemplateHead {
+                if (!self._loadDictionaryFromData) {
+                    let bufStr = "\(object.mail_address_to);\(object.mail_address_cc);\(object.mail_address_bcc)"
+                    self._addressDictionary = StringCommon.makeDictionary(bufStr, rev: true)
+                    self._nameDictionary = StringCommon.makeDictionary(bufStr, rev: false)
+                    self._loadDictionaryFromData = true
+                }
                 switch (indexPath.section) {
                 case 0:
                     // セルを定義
@@ -162,6 +175,10 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
                     if (!self._addressToDidLoad) {
                         addressTo.text = object.mail_address_to
                         addressTo.delegate = self
+                        
+                        if let text = addressTo.text {
+                            addressTo.text = StringCommon.stringFromDictionary(self._addressDictionary, list: StringCommon.stringToArray(text))
+                        }
                         
                         var addToBt: AnyObject = UIButton.buttonWithType(UIButtonType.ContactAdd)
                         addToBt.addTarget(self, action: "onClickAddToBt", forControlEvents: UIControlEvents.TouchUpInside)
@@ -181,6 +198,10 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
                         addressCc.text = object.mail_address_cc
                         addressCc.delegate = self
                         
+                        if let text = addressCc.text {
+                            addressCc.text = StringCommon.stringFromDictionary(self._addressDictionary, list: StringCommon.stringToArray(text))
+                        }
+                        
                         var addCcBt: AnyObject = UIButton.buttonWithType(UIButtonType.ContactAdd)
                         addCcBt.addTarget(self, action: "onClickAddCcBt", forControlEvents: UIControlEvents.TouchUpInside)
                         addressCc.rightView = addCcBt as? UIView
@@ -198,6 +219,10 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
                     if (!self._addressBccDidLoad) {
                         addressBcc.text = object.mail_address_bcc
                         addressBcc.delegate = self
+                        
+                        if let text = addressBcc.text {
+                            addressBcc.text = StringCommon.stringFromDictionary(self._addressDictionary, list: StringCommon.stringToArray(text))
+                        }
                         
                         var addBccBt: AnyObject = UIButton.buttonWithType(UIButtonType.ContactAdd)
                         addBccBt.addTarget(self, action: "onClickAddBccBt", forControlEvents: UIControlEvents.TouchUpInside)
@@ -221,7 +246,7 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
                         let window = ItemSelectSubjectWindow()
                         let keyBoard = KeyBoardViewOnTextField(frame: CGRectMake(0, 0, 320, 40))
                         keyBoard._textField = subject
-                        keyBoard.drawKeyBoardView(self, window: window)
+                        keyBoard.drawKeyBoardView(self)
                         subject.inputAccessoryView = keyBoard
                         self._subject = subject
                         StringCommon.setTextFieldAttribute(false, key: self._ap.editTemplateName!, textField: self._subject)
@@ -307,6 +332,9 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
         attrText.addAttribute(NSFontAttributeName, value: font, range: range)
         attrText.addAttribute(NSForegroundColorAttributeName, value: UIColor.blackColor(), range: range)
         textView.attributedText = attrText
+        
+        // プレビューボタン非活性
+        self.previewBt.enabled = false
     }
     
     // TextView 編集終了時イベント処理
@@ -314,11 +342,13 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
         
         if let keyBoard = self.textView.inputAccessoryView as? KeyBoardViewOnTextView {
             StringCommon.setTextViewAttribute(false, key: self._ap.editTemplateName!, textView: textView)
-            keyBoard._window.hidden = true
         }
         
         // 本文(TextView)リサイズ
         self.textView.resize((self._drawHeight! - TemplateCell.withoutBodyHeight), width: (self._drawWidth! - 10.0))
+        
+        // プレビューボタン活性化
+        self.previewBt.enabled = true
     }
     
     override func viewWillDisappear(animated: Bool) {
@@ -337,8 +367,8 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
             
             // アドレスTo取得
             if let addressTo = self._addressTo.text {
-                if (StringCommon.stringToArray(addressTo).count > 1) {
-                    templateHead.mail_address_to = StringCommon.arrayToString(StringCommon.stringToArray(addressTo))
+                if (StringCommon.stringToArray(addressTo).count > 0) {
+                    templateHead.mail_address_to = StringCommon.dictionaryToString(self._nameDictionary, list: StringCommon.stringToArray(addressTo))
                 } else {
                     templateHead.mail_address_to = addressTo
                 }
@@ -346,8 +376,8 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
             
             // アドレスCc取得
             if let addressCc = self._addressCc.text {
-                if (StringCommon.stringToArray(addressCc).count > 1) {
-                    templateHead.mail_address_cc = StringCommon.arrayToString(StringCommon.stringToArray(addressCc))
+                if (StringCommon.stringToArray(addressCc).count > 0) {
+                    templateHead.mail_address_cc = StringCommon.dictionaryToString(self._nameDictionary, list: StringCommon.stringToArray(addressCc))
                 } else {
                     templateHead.mail_address_cc = addressCc
                 }
@@ -355,8 +385,8 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
             
             // アドレスBcc取得
             if let addressBcc = self._addressBcc.text {
-                if (StringCommon.stringToArray(addressBcc).count > 1) {
-                    templateHead.mail_address_bcc = StringCommon.arrayToString(StringCommon.stringToArray(addressBcc))
+                if (StringCommon.stringToArray(addressBcc).count > 0) {
+                    templateHead.mail_address_bcc = StringCommon.dictionaryToString(self._nameDictionary, list: StringCommon.stringToArray(addressBcc))
                 } else {
                     templateHead.mail_address_bcc = addressBcc
                 }
@@ -394,7 +424,13 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
     func textFieldDidEndEditing(textField: UITextField) -> Bool {
         if let keyBoard = textField.inputAccessoryView as? KeyBoardViewOnTextField {
             StringCommon.setTextFieldAttribute(false, key: self._ap.editTemplateName!, textField: textField)
-            keyBoard._window.hidden = true
+        } else {
+            updateNameDictionary()
+            updateAddressDictionary()
+            
+            if let text = textField.text {
+                textField.text = StringCommon.stringFromDictionary(self._addressDictionary, list: StringCommon.stringToArray(text))
+            }
         }
         return true
     }
@@ -454,6 +490,11 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
         }
     }
     
+    // プレビューボタン
+    @IBAction func onClickPreviewBt(){
+        self.performSegueWithIdentifier("toTemplatePreviewView",sender: nil)
+    }
+    
     // アドレス帳でキャンセルボタンを押下時のイベント
     func peoplePickerNavigationControllerDidCancel(peoplePicker: ABPeoplePickerNavigationController!) {
         
@@ -464,6 +505,7 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
     // アドレス帳からE-Mailアドレスが選択されたときのイベント
     func peoplePickerNavigationController(peoplePicker: ABPeoplePickerView!, didSelectPerson person: ABRecord!, property: ABPropertyID, identifier: ABMultiValueIdentifier) {
         let multiValue: ABMultiValueRef = ABRecordCopyValue(person, property).takeRetainedValue()
+        let name = ABRecordCopyCompositeName(person).takeRetainedValue()
         let index = ABMultiValueGetIndexForIdentifier(multiValue, identifier)
         let email = ABMultiValueCopyValueAtIndex(multiValue, index).takeRetainedValue() as String
         
@@ -471,14 +513,86 @@ class TemplateEditTableViewController: UITableViewController, UITextFieldDelegat
             if (!StringCommon.isBlank(buf)) {
                 if let text = peoplePicker._textField?.text {
                     if text.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet()).hasSuffix(";") {
-                        peoplePicker._textField?.text = "\(buf)\(email);"
+                        peoplePicker._textField?.text = "\(buf)\"\(name)\"<\(email)>;"
                     } else {
-                        peoplePicker._textField?.text = "\(buf);\(email);"
+                        peoplePicker._textField?.text = "\(buf);\"\(name)\"<\(email)>;"
                     }
                 }
             } else {
-                peoplePicker._textField?.text = "\(email);"
+                peoplePicker._textField?.text = "\"\(name)\"<\(email)>;"
             }
         }
+        updateNameDictionary()
+        updateAddressDictionary()
+        
+        if let text = peoplePicker._textField?.text {
+            peoplePicker._textField?.text = StringCommon.stringFromDictionary(self._addressDictionary, list: StringCommon.stringToArray(text))
+        }
+    }
+    
+    @IBAction func returnTemplateEditView(segue: UIStoryboardSegue) {
+        self.tableView.reloadData()
+    }
+    
+    // AddressDictionary更新
+    func updateAddressDictionary(){
+        var bufArr: [String] = []
+        var bufAddresssDictionary = Dictionary<String, String>()
+        let bufToArr = StringCommon.stringToArray(self._addressTo.text)
+        let bufCcArr = StringCommon.stringToArray(self._addressCc.text)
+        let bufBccArr = StringCommon.stringToArray(self._addressBcc.text)
+        bufArr = bufToArr + bufCcArr + bufBccArr
+        
+        for bufStr in bufArr {
+            if let isKey = self._nameDictionary[bufStr] {
+                bufAddresssDictionary[isKey] = bufStr
+            } else {
+                if (!StringCommon.isBlank(bufStr)) {
+                    var separatedArr = StringCommon.separateAddressString(bufStr, rev: true)
+                    switch separatedArr.count {
+                    case 1:
+                        bufAddresssDictionary[separatedArr[0]] = separatedArr[0]
+                        break
+                    case 2:
+                        bufAddresssDictionary[separatedArr[0]] = separatedArr[1]
+                        break
+                    default:
+                        break
+                    }
+                }
+            }
+        }
+        self._addressDictionary = bufAddresssDictionary
+    }
+    
+    // NameDictionary更新
+    func updateNameDictionary(){
+        var bufArr: [String] = []
+        var bufNameDictionary = Dictionary<String, String>()
+        let bufToArr = StringCommon.stringToArray(self._addressTo.text)
+        let bufCcArr = StringCommon.stringToArray(self._addressCc.text)
+        let bufBccArr = StringCommon.stringToArray(self._addressBcc.text)
+        bufArr = bufToArr + bufCcArr + bufBccArr
+        
+        for bufStr in bufArr {
+            if let isKey = self._nameDictionary[bufStr] {
+                bufNameDictionary[bufStr] = isKey
+            } else {
+                if (!StringCommon.isBlank(bufStr)) {
+                    var separatedArr = StringCommon.separateAddressString(bufStr, rev: false)
+                    switch separatedArr.count {
+                    case 1:
+                        bufNameDictionary[separatedArr[0]] = separatedArr[0]
+                        break
+                    case 2:
+                        bufNameDictionary[separatedArr[0]] = separatedArr[1]
+                        break
+                    default:
+                        break
+                    }
+                }
+            }
+        }
+        self._nameDictionary = bufNameDictionary
     }
 }

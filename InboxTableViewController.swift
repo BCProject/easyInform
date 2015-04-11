@@ -25,17 +25,10 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
     
     @IBOutlet weak var composeBt: UIBarButtonItem!
     
-    // NotificationToken定義
-    private var _notificationToken : RLMNotificationToken?
-    
     var _ap:AppDelegate = UIApplication.sharedApplication().delegate as AppDelegate
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        self._notificationToken = RLMRealm.defaultRealm().addNotificationBlock{ note, realm in
-            self.tableView.reloadData()
-        }
     }
     
     override func didReceiveMemoryWarning() {
@@ -46,6 +39,7 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(true)
         self.tableView.tableFooterView = UIView(frame: CGRectMake(0, 0, 0, 0))
+        self.tableView.reloadData()
         
         // ****************************************//
         // For Debug...
@@ -151,8 +145,6 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
                 // コンテンツ
                 var content = templateHeadHead.viewWithTag(3) as UILabel
                 content.text = "\(object.mail_title)"
-                content.sizeToFit()
-                content.numberOfLines = 0
             }
             
             return templateHeadHead
@@ -179,8 +171,6 @@ class InboxTableViewController: UITableViewController,  MFMailComposeViewControl
                 // コンテンツ
                 var content = templateItemCell.viewWithTag(3) as UILabel
                 content.text = "\(object.item_content)"
-                content.sizeToFit()
-                content.numberOfLines = 0
             }
             
             return templateItemCell

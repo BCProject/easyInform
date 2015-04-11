@@ -26,7 +26,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var editItemTitle: String?
     var sendHistoryNo: NSInteger?
     var sendHistorySendD: NSDate?
+    
+    // ****************************************//
+    // For Debug...
     var hideBanner: Bool = false
+    // ****************************************//
 
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         // Override point for customization after application launch.

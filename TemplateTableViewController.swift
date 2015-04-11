@@ -14,9 +14,6 @@ class TemplateTableViewController: UITableViewController,  ADBannerViewDelegate 
     
     @IBOutlet weak var historyBt: UIBarButtonItem!
     
-    // NotificationToken定義
-    private var _notificationToken : RLMNotificationToken?
-    
     // 広告バナー定義
     let _iadBanner = ADBannerView(adType: ADAdType.Banner)
     
@@ -25,11 +22,6 @@ class TemplateTableViewController: UITableViewController,  ADBannerViewDelegate 
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // TemplateHead NotificationToken
-        self._notificationToken = RLMRealm.defaultRealm().addNotificationBlock{ note, realm in
-            self.tableView.reloadData()
-        }
         
         // 長押し用ジェスチャー
         let longPressRecognizer: UILongPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: "rowButtonAction:")
@@ -46,6 +38,7 @@ class TemplateTableViewController: UITableViewController,  ADBannerViewDelegate 
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(true)
         self.tableView.tableFooterView = UIView(frame: CGRectMake(0, 0, 0, 0))
+        self.tableView.reloadData()
         
         if let object = SendHistory.allObjects() {
             if (object.count > 0) {
@@ -291,12 +284,6 @@ class TemplateTableViewController: UITableViewController,  ADBannerViewDelegate 
         return TemplateHead.allObjects().sortedResultsUsingProperty("disp_no", ascending: true)
     }
     
-    
-    // データリフレッシュ
-    @IBAction func returnTemplate(segue: UIStoryboardSegue) {
-        self.tableView.reloadData()
-    }
-    
     // 長押し判別用
     @IBAction func rowButtonAction(gestureRecognizer: UILongPressGestureRecognizer){
 
@@ -318,6 +305,10 @@ class TemplateTableViewController: UITableViewController,  ADBannerViewDelegate 
                 self.performSegueWithIdentifier("toTemplateEditView",sender: nil)
             }
         }
+    }
+    
+    @IBAction func returnTemplateView(segue: UIStoryboardSegue) {
+        self.tableView.reloadData()
     }
     
     // 履歴ボタン押下イベント

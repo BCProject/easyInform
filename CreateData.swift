@@ -17,8 +17,8 @@ class CreateData {
         let template1Head = TemplateHead()
         template1Head.template_name = "テンプレート1"
         template1Head.mail_address = "mailFrom1@brainchild.co.jp;"
-        template1Head.mail_address_to = "mailTo1@brainchild.co.jp;"
-        template1Head.mail_address_cc = "mailCc1@brainchild.co.jp;"
+        template1Head.mail_address_to = "\"遅刻太郎\"<mailTo1@brainchild.co.jp>;"
+        template1Head.mail_address_cc = "\"遅刻次郎\"<mailCc1@brainchild.co.jp>;"
         template1Head.mail_title = "【勤怠連絡】遅刻 {取得日} 佐藤"
         template1Head.mail_body = "宛先各位\n\nお疲れ様です。佐藤です。\n{理由}のため、遅刻します。\n{出社時刻}頃出社予定です。\n\n以上です。"
         template1Head.disp_no = 0
@@ -83,8 +83,8 @@ class CreateData {
         let template2Head = TemplateHead()
         template2Head.template_name = "テンプレート2"
         template2Head.mail_address = "mailFrom2@brainchild.co.jp;"
-        template2Head.mail_address_to = "mailTo2@brainchild.co.jp;"
-        template2Head.mail_address_cc = "mailCc2@brainchild.co.jp;"
+        template2Head.mail_address_to = "\"早退太郎\"<mailTo2@brainchild.co.jp>;"
+        template2Head.mail_address_cc = "\"早退次郎\"<mailCc2@brainchild.co.jp>;"
         template2Head.mail_title = "【勤怠連絡】早退 {取得日} 佐藤"
         template2Head.mail_body = "宛先各位\n\nお疲れ様です。佐藤です。\n{理由}のため、早退します。\n{退社時刻}頃退社しました。\n\n以上です。"
         template2Head.disp_no = 1

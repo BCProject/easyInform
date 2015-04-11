@@ -1,31 +1,26 @@
 //
-//  SendHistoryDataTableViewController.swift
+//  TemplatePreviewTableViewController.swift
 //  easyInform
 //
-//  Created by 竿尾良平 on 2015/03/14.
+//  Created by 竿尾良平 on 2015/04/11.
 //  Copyright (c) 2015年 Brainchild Inc. All rights reserved.
 //
 
 import UIKit
-import Realm
 
-class SendHistoryDataTableViewController: UITableViewController, UITextFieldDelegate {
-    
-    @IBOutlet weak var cancelBt: UIBarButtonItem!
-    
+struct PreviewCell {
+    static let defaultRowHeight: CGFloat = 40.0
+    static let rowCount: Int = 5
+    static let rowTitleLabel: [String] = ["宛先:","CC:","BCC:","件名:"]
+}
+
+class TemplatePreviewTableViewController: UITableViewController {
+
     // Appデリゲートオブジェクト
     let _ap:AppDelegate = UIApplication.sharedApplication().delegate as AppDelegate
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // タイトル表示
-        if let title = self._ap.sendHistorySendD {
-            var df = NSDateFormatter()
-            df.locale = NSLocale(localeIdentifier: "EN")
-            df.dateFormat = "yyyy/MM/dd HH:mm:ss"
-            self.title = df.stringFromDate(title)
-        }
         
         self.tableView.estimatedRowHeight = PreviewCell.defaultRowHeight
         self.tableView.rowHeight = UITableViewAutomaticDimension
@@ -52,7 +47,7 @@ class SendHistoryDataTableViewController: UITableViewController, UITextFieldDele
     
     // セクションタイトル
     override func tableView(tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        if let object = SendHistory(forPrimaryKey: self._ap.sendHistoryNo) {
+        if let object = TemplateHead(forPrimaryKey: self._ap.editTemplateName) {
             return object.template_name
         } else {
             return nil
@@ -71,8 +66,8 @@ class SendHistoryDataTableViewController: UITableViewController, UITextFieldDele
     
     // テーブルセル 内容
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        // 履歴情報取得
-        if let object = SendHistory(forPrimaryKey: self._ap.sendHistoryNo) {
+        // テンプレートHEAD情報取得
+        if let object = TemplateHead(forPrimaryKey: self._ap.editTemplateName) {
             switch (indexPath.row) {
             case 0:
                 // セルを定義
@@ -123,8 +118,8 @@ class SendHistoryDataTableViewController: UITableViewController, UITextFieldDele
                 label.text = PreviewCell.rowTitleLabel[indexPath.row]
                 
                 var subject = cell.viewWithTag(2) as UILabel
-                if (!StringCommon.isBlank(object.mail_title)) {
-                    subject.text = object.mail_title
+                if (!StringCommon.isBlank(MaillerCommon.createSentence(object.template_name, str: object.mail_title))) {
+                    subject.text = MaillerCommon.createSentence(object.template_name, str: object.mail_title)
                 } else {
                     subject.text = " "
                 }
@@ -134,8 +129,8 @@ class SendHistoryDataTableViewController: UITableViewController, UITextFieldDele
                 // セルを定義
                 var cell = tableView.dequeueReusableCellWithIdentifier("oneLabelCell") as TemplateEditTableViewCell
                 var body = cell.viewWithTag(1) as UILabel
-                if (!StringCommon.isBlank(object.mail_body)) {
-                    body.text = object.mail_body
+                if (!StringCommon.isBlank(MaillerCommon.createSentence(object.template_name, str: object.mail_body))) {
+                    body.text = MaillerCommon.createSentence(object.template_name, str: object.mail_body)
                 } else {
                     body.text = " "
                 }
@@ -153,4 +148,5 @@ class SendHistoryDataTableViewController: UITableViewController, UITextFieldDele
         var cell = UITableViewCell()
         return cell
     }
+
 }

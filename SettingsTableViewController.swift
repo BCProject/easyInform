@@ -8,13 +8,19 @@
 
 import UIKit
 import MessageUI
+// ****************************************//
+// For Debug...
 import Realm
+// ****************************************//
 
 struct Setting {
+    // ****************************************//
+    // For Debug Part...
     static let sectionHeight: [CGFloat] = [60.0, 30.0, 30.0, 30.0]
     static let sectionTitle: [String] = ["全般","表示","サポート","デバッグ"]
     static let contentLabel:[[String]] = [["","","履歴の初期化"],["",""],["よくある質問","お問い合わせ"],["サイボウズ","データ初期化","広告非表示"]]
     static let rowAtSection: [Int] = [3, 2, 2, 3]
+    // ****************************************//
     static let rowHeightAtSection: CGFloat = 50.0
     static let footerHeight: CGFloat = 100.0
 }
@@ -41,6 +47,8 @@ class SettingsTableViewController: UITableViewController, MFMailComposeViewContr
 
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(true)
+        
+        // ライセンス
         let footerView: UIView = UIView(frame: CGRectMake(0, 0, CGRectGetWidth(self.view.frame), 100.0))
         let footerLabel1: UILabel = UILabel(frame: CGRectMake(0, 20, CGRectGetWidth(self.view.frame), 20))
         let footerLabel2: UILabel = UILabel(frame: CGRectMake(0, 40, CGRectGetWidth(self.view.frame), 20))
@@ -165,6 +173,8 @@ class SettingsTableViewController: UITableViewController, MFMailComposeViewContr
                 label.text = Setting.contentLabel[indexPath.section][indexPath.row]
                 return cell
             }
+        // ****************************************//
+        // For Debug...
         case 3:
             switch (indexPath.row) {
             case 0:
@@ -196,6 +206,7 @@ class SettingsTableViewController: UITableViewController, MFMailComposeViewContr
                 label.text = ""
                 return cell
             }
+        // ****************************************//
         default:
             // セルを定義
             var cell = tableView.dequeueReusableCellWithIdentifier("normalCell") as UITableViewCell
@@ -236,6 +247,9 @@ class SettingsTableViewController: UITableViewController, MFMailComposeViewContr
             // メール送信画面へ遷移
             self.presentViewController(mailController, animated: true, completion: nil)
             break
+            
+        // ****************************************//
+        // For Debug...
         case Setting.contentLabel[3][0]:
             let url = NSURL(string:"http://www.brainchild.co.jp/cb9/ag.cgi")
             let app:UIApplication = UIApplication.sharedApplication()
@@ -249,6 +263,8 @@ class SettingsTableViewController: UITableViewController, MFMailComposeViewContr
             }
             ViewCommon.confirmDiarog(self, msg: "データを初期化します。\nよろしいですか？", okAction: okAction, cancelAction: nil)
             break
+        // ****************************************//
+
         default:
             break
         }
@@ -256,6 +272,8 @@ class SettingsTableViewController: UITableViewController, MFMailComposeViewContr
         tableView.deselectRowAtIndexPath(indexPath, animated: true)
     }
     
+    // ****************************************//
+    // For Debug...
     func switchToggle() {
         if (self._ap.hideBanner) {
             self._ap.hideBanner = false
@@ -265,6 +283,7 @@ class SettingsTableViewController: UITableViewController, MFMailComposeViewContr
             self.canDisplayBannerAds = false
         }
     }
+    // ****************************************//
     
     // メール作成 終了処理
     func mailComposeController(controller: MFMailComposeViewController!, didFinishWithResult result: MFMailComposeResult, error: NSError!) {

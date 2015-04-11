@@ -21,7 +21,6 @@ class ItemSelectPickerView: UIPickerView, UIPickerViewDelegate {
     override func drawRect(rect: CGRect) {
         super.drawRect(rect)
         
-        self.frame = CGRectMake(0.0, 0.0, 200, 162.0)
         self.backgroundColor = UIColor.BackColor()
         self.tintColor = UIColor.MainColor()
         self.showsSelectionIndicator = true
